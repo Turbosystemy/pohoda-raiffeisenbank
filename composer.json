@@ -1,6 +1,6 @@
 {
-    "name": "spojenet/pohoda-raiffeisenbank",
-    "description": "raiffeisenbank bank statement downloader for Stormware Pohoda",
+    "name": "vitexsoftware/pohoda-raiffeisenbank-connector",
+    "description": "Connector that synchronizes Raiffeisenbank Premium API statements and transactions with Stormware Pohoda.",
     "license": "MIT",
     "authors": [
         {
@@ -9,35 +9,16 @@
         }
     ],
     "minimum-stability": "dev",
-    "bin": ["src/pohoda-raiffeisenbank-transactions.php", "src/pohoda-raiffeisenbank-setup.php"],
+    "prefer-stable": true,
     "require": {
+        "php": "^8.1",
         "ext-curl": "*",
-        "vgrem/php-spo": "^3",
         "vitexsoftware/pohoda-connector": "dev-main",
-        "vitexsoftware/rbczpremiumapi": "dev-main",
-        "spojenet/pohoda-sql": "dev-main"
+        "vitexsoftware/rbczpremiumapi": "dev-main"
     },
     "autoload": {
         "psr-4": {
-            "Pohoda\\RaiffeisenBank\\": "src/Pohoda/RaiffeisenBank/"
-        }
-    },
-    "autoload-dev": {
-        "psr-4": {
-            "Test\\Pohoda\\": "vendor/vitexsoftware/pohoda-connector/tests/src/Pohoda/",
-            "Test\\Pohoda\\RaiffeisenBank\\": "tests/Pohoda/RaiffeisenBank/"
-        }
-    },
-    "require-dev": {
-        "phpunit/phpunit": "*",
-        "phpstan/phpstan": "*",
-        "friendsofphp/php-cs-fixer": "^3.61",
-        "ergebnis/composer-normalize": "^2.43",
-        "ergebnis/php-cs-fixer-config": "^6.34"
-    },
-    "config": {
-        "allow-plugins": {
-            "ergebnis/composer-normalize": true
+            "Pohoda\\RaiffeisenBank\\": "src/"
         }
     }
 }

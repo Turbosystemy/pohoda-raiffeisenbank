@@ -3,9 +3,7 @@
 declare(strict_types=1);
 
 /**
- * This file is part of the PohodaRaiffeisenbank package
- *
- * https://github.com/Spoje-NET/pohoda-raiffeisenbank
+ * This file is part of the Pohoda Raiffeisenbank Connector package.
  *
  * (c) Spoje.Net IT s.r.o. <https://spojenet.cz>
  *
@@ -16,9 +14,7 @@ declare(strict_types=1);
 namespace Pohoda\RaiffeisenBank;
 
 /**
- * Description of Statementor.
- *
- * @author vitex
+ * Downloads and imports Raiffeisenbank bank statements into Stormware Pohoda.
  */
 class Statementor extends PohodaBankClient
 {

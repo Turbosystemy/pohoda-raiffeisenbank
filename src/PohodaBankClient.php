@@ -3,9 +3,7 @@
 declare(strict_types=1);
 
 /**
- * This file is part of the PohodaRaiffeisenbank package
- *
- * https://github.com/Spoje-NET/pohoda-raiffeisenbank
+ * This file is part of the Pohoda Raiffeisenbank Connector package.
  *
  * (c) Spoje.Net IT s.r.o. <https://spojenet.cz>
  *
@@ -18,9 +16,7 @@ namespace Pohoda\RaiffeisenBank;
 use Ease\Shared;
 
 /**
- * Description of ApiClient.
- *
- * @author vitex
+ * Base helper shared by the Raiffeisenbank statement and transaction importers.
  */
 abstract class PohodaBankClient extends \mServer\Bank
 {
