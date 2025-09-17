@@ -1,2 +1,0 @@
-#!/bin/bash
-php -f /usr/lib/pohoda-raiffeisenbank/raiffeisenbank-statements-sharepoint-checker.php -- $@

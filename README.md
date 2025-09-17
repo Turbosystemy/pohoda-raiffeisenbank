@@ -1,185 +1,127 @@
-# Raiffeisenbank for Stormware Pohoda
+# Pohoda Raiffeisenbank Connector
 
-![](pohoda-raiffeisenbank.svg?raw=true)
+This repository contains the PHP classes that bridge the Raiffeisenbank Premium API and Stormware Pohoda via mServer.  
+Use `Pohoda\RaiffeisenBank\Transactor` to push transactions into Pohoda and
+`Pohoda\RaiffeisenBank\Statementor` to download, parse and import bank statements.
 
-It downloads PDF statements from Raiffeisen Premium API for a specified period and uploads them to Sharepoint.
+## Installation
 
-It downloads the corresponding XML statements and parses them. It imports the bank movements obtained in this way via mServer into Stormware Pohoda.
-
-After importing all items, document liquidation is initiated and they are automatically matched.
-
-When using PohodaSQL, links to PDF statements are attached to all movements.
-
-[![wakatime](https://wakatime.com/badge/user/5abba9ca-813e-43ac-9b5f-b1cfdf3dc1c7/project/018b7d35-a10b-4f4b-ba78-241d1c79b4e6.svg)](https://wakatime.com/badge/user/5abba9ca-813e-43ac-9b5f-b1cfdf3dc1c7/project/018b7d35-a10b-4f4b-ba78-241d1c79b4e6)
-
-## Requirements
-
-* php 8.1+
-* Pohoda (Pohoda SQL for full functionality) + [mServer](https://www.stormware.cz/pohoda/xml/mserver/)
-* Sharepoint User or Application Account
-* MSSQL login and password
-* [php-sqlsrv](https://learn.microsoft.com/en-us/sql/connect/php/microsoft-php-driver-for-sql-server?view=sql-server-ver16)
-
-## Setup command
-
-Check certificate presence yet.
-
-## Transactions tool
-
-Import Bank movements from RaiffeisenBank (using [getTransactionList](https://developers.rb.cz/premium/documentation/01rbczpremiumapi#/Get%20Transaction%20List/getTransactionList) as source)
-to Pohoda using mServer
-
-![Transactions](transactions.png?raw=true)
+```
+composer require vitexsoftware/pohoda-raiffeisenbank-connector
+```
 
 ## Configuration
 
-Configuration is stored in `.env` file in the working directory. You can use `.env.example` as template.
-When the configuration file is missing, the application will try to use environment variables.
+The classes rely on [`Ease\Shared`](https://github.com/VitexSoftware/EaseCore) for configuration.  
+Load the required values from a `.env` file or from environment variables before creating
+an instance of `Transactor` or `Statementor`:
 
-```env
-EASE_LOGGER=syslog|console
-CERT_FILE='RAIFF_CERT.p12'
-CERT_PASS=CertPass
-XIBMCLIENTID=PwX4bOQLWGiuoErv6I
-ACCOUNT_NUMBER=666666666
-ACCOUNT_CURRENCY=CZK
-
-IMPORT_SCOPE=last_two_months
-IMPORT_SCOPE=yesterday
-
-API_DEBUG=True
-APP_DEBUG=True
-STATEMENT_LINE=ADDITIONAL
-STATEMENT_SAVE_DIR=/tmp/rb
-
-CNB_CACHE=http://localhost/cnb-cache/
-RATE_OFFSET=today
-FIXED_RATE=25.1
-FIXED_RATE_AMOUNT=1
-
-
-POHODA_ICO=12345678
-POHODA_URL=http://10.11.25.25:10010
-POHODA_USERNAME=mServerXXX
-POHODA_PASSWORD=mServerXXX
-POHODA_TIMEOUT=60
-POHODA_COMPRESS=false
-POHODA_DEBUG=true
-POHODA_BANK_IDS=RB
-
-DB_CONNECTION=sqlsrv
-DB_HOST=192.168.25.23
-DB_PORT=1433
-DB_DATABASE=StwPh_12345678_2023
-DB_USERNAME=pohodaSQLuser
-DB_PASSWORD=pohodaSQLpassword
-DB_SETTINGS=encrypt=false
+```php
+\Ease\Shared::init(
+    [
+        'POHODA_URL', 'POHODA_USERNAME', 'POHODA_PASSWORD', 'POHODA_ICO',
+        'CERT_FILE', 'CERT_PASS', 'XIBMCLIENTID', 'ACCOUNT_NUMBER'
+    ],
+    __DIR__.'/.env'
+);
 ```
 
-## Import Scopes
+### Raiffeisenbank Premium API
 
-* `today`
-* `yesterday`
-* `last_week`
-* `last_month`
-* `last_two_months`
-* `previous_month`
-* `two_months_ago`
-* `this_year` (statements only)
-* `January`  (statements only)
-* `February` (statements only)
-* `March` (statements only)
-* `April` (statements only)
-* `May` (statements only)
-* `June` (statements only)
-* `July` (statements only)
-* `August` (statements only)
-* `September` (statements only)
-* `October` (statements only)
-* `November` (statements only)
-* `December` (statements only)
-* `auto`
-* `2024-08-05>2024-08-11` - custom scope
-* `2024-10-11` - only specific day
+| Key | Description |
+| --- | --- |
+| `CERT_FILE` | Path to the PKCS#12 certificate obtained from the bank. |
+| `CERT_PASS` | Password protecting the certificate. |
+| `XIBMCLIENTID` | Client identifier issued for the Premium API application. |
+| `ACCOUNT_NUMBER` | Bank account number used for API calls. |
+| `ACCOUNT_CURRENCY` | ISO currency code (defaults to `CZK`). |
+| `STATEMENT_LINE` | `MAIN` or `ADDITIONAL` statement line to download. |
 
-## Foregin Currency Transactions
+When importing foreign currency statements provide one of the following:
 
-If you have transactions in foreign currency, you can use `FIXED_RATE` to convert them to CZK using preconfigured fixed rate.
-(for some currencies eg. 💴 you can use FIXED_RATE_AMOUNT=100)
+* `FIXED_RATE` (+ optional `FIXED_RATE_AMOUNT`) for a predefined conversion rate, **or**
+* `CNB_CACHE` URL pointing to a CNB cache service together with optional `RATE_OFFSET`
+  (`today` or `yesterday`).
 
-Otherwise you can use `CNB_CACHE` to get actual rate from CNB.
-In this case you can also need to specify `RATE_OFFSET`=yesterday to get rate for previous day.
+### Stormware Pohoda mServer
 
-[For CNB currency rates you need to have running CNB cache server!](https://github.com/Spoje-NET/CNB-Cache)
+| Key | Description |
+| --- | --- |
+| `POHODA_URL` | Base URL of the mServer instance. |
+| `POHODA_USERNAME`, `POHODA_PASSWORD` | Credentials for the Pohoda API user. |
+| `POHODA_BANK_IDS` | Identifier of the Pohoda bank agenda (e.g. `RB`). |
+| `POHODA_TIMEOUT`, `POHODA_COMPRESS`, `POHODA_DEBUG` | Optional request tuning flags. |
+| `POHODA_ICO` | Company identification number used when building liquidation requests. |
+| `JOB_ID` | Optional identifier shown in the imported records. |
 
-## Sharepoint Integration
+## Usage
 
-Login based auth
+### Import Raiffeisenbank transactions
 
-```env
-OFFICE365_USERNAME=me@company.tld
-OFFICE365_PASSWORD=xxxxxxxxxxxxxx
+```php
+<?php
+
+declare(strict_types=1);
+
+require __DIR__.'/../vendor/autoload.php';
+
+\Ease\Shared::init([
+    'POHODA_URL', 'POHODA_USERNAME', 'POHODA_PASSWORD', 'POHODA_ICO',
+    'CERT_FILE', 'CERT_PASS', 'XIBMCLIENTID', 'ACCOUNT_NUMBER', 'POHODA_BANK_IDS'
+]);
+
+$transactor = new Pohoda\RaiffeisenBank\Transactor(\Ease\Shared::cfg('ACCOUNT_NUMBER'));
+$transactor->setScope('last_two_months');
+$transactor->import();
 ```
 
-ClientID based auth
+The import reads movements from the Premium API and writes them to Pohoda.  
+Scopes accepted by `setScope()` include `today`, `yesterday`, `last_week`,
+`last_month`, `last_two_months`, `previous_month`, `two_months_ago`, month
+names (`January` … `December`), `this_year`, a single day (`YYYY-MM-DD`), or a
+custom range (`YYYY-MM-DD>YYYY-MM-DD`).
 
-```env
-OFFICE365_CLIENTID=78842b49-651d-516e-0f2g-f979956aa620
-OFFICE365_SECRET=09f04vbd-cfbc-5d78-afb7-2dfbebc4c385
-OFFICE365_CLSECRET=8FR8Q~3Rab4-5o8dVd~1vDRId9oYiqEtMJB.Ucb2
+### Work with statements
+
+```php
+<?php
+
+declare(strict_types=1);
+
+require __DIR__.'/../vendor/autoload.php';
+
+\Ease\Shared::init([
+    'POHODA_URL', 'POHODA_USERNAME', 'POHODA_PASSWORD', 'POHODA_ICO',
+    'CERT_FILE', 'CERT_PASS', 'XIBMCLIENTID', 'ACCOUNT_NUMBER',
+    'ACCOUNT_CURRENCY', 'STATEMENT_SAVE_DIR'
+]);
+
+$statementor = new Pohoda\RaiffeisenBank\Statementor(\Ease\Shared::cfg('ACCOUNT_NUMBER'));
+$statementor->setScope('last_month');
+$statementor->downloadXML();
+$statementor->downloadPDF();
+$imported = $statementor->import(\Ease\Shared::cfg('POHODA_BANK_IDS', 'RB'));
+
+printf("Imported %d statement items\n", \count($imported));
 ```
 
-Destination options
+`Statementor` exposes helper methods for offline processing as well:
 
-```env
-OFFICE365_TENANT=yourcomapny
-OFFICE365_SITE=YourSite
-OFFICE365_PATH='Shared documents/statements'
+* `importXML($path)` – register a downloaded XML file for import.
+* `download('xml'|'pdf')` / `downloadOne()` – download statements into the configured directory.
+* `getStatementFilenames('xml'|'pdf')` – build friendly filenames for the downloaded files.
+* `getMessages()` – inspect messages returned by Pohoda after the import.
+
+### Certificate helper
+
+Before running an import you can validate the PKCS#12 file with:
+
+```php
+Pohoda\RaiffeisenBank\PohodaBankClient::checkCertificate($pathToCert, $password);
 ```
 
-Into configuration file .env please put ClientID **OR** Login/Password values.
+This prevents the process from running with an unreadable or invalid certificate.
 
-## ExitCodes
+## License
 
-2 - error obtaining PDF statements
-4 - Cannot link to Sharepoint problem
-254 - Another Exception without numeric code Ocurred
-401 - user is not authorized to import import XML files to Pohoda
-
-## Powered by
-
-* <https://github.com/VitexSoftware/php-vitexsoftware-rbczpremiumapi>
-* <https://github.com/Spoje-NET/PohodaSQL>
-* <https://github.com/VitexSoftware/PHP-Pohoda-Connector>
-
-## See also
-
-* <https://github.com/Spoje-NET/pohoda-client-checker>
-* <https://github.com/Spoje-NET/raiffeisenbank-statement-tools>
-
-## MultiFlexi
-
-Pohoda RaiffeisenBank is ready for run as [MultiFlexi](https://multiflexi.eu) application.
-See the full list of ready-to-run applications within the MultiFlexi platform on the [application list page](https://www.multiflexi.eu/apps.php).
-
-[![MultiFlexi App](https://github.com/VitexSoftware/MultiFlexi/blob/main/doc/multiflexi-app.svg)](https://www.multiflexi.eu/apps.php)
-
-## Debian/Ubuntu installation
-
-Please use the .deb packages. The repository is availble:
-
- ```shell
-    echo "deb http://repo.vitexsoftware.com $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/vitexsoftware.list
-    sudo wget -O /etc/apt/trusted.gpg.d/vitexsoftware.gpg http://repo.vitexsoftware.com/keyring.gpg
-    sudo apt update
-    sudo apt install pohoda-raiffeisenbank
-```
-
-Po instalaci balíku jsou v systému k dispozici tyto nové příkazy:
-
-* **pohoda-raiffeisenbank-setup**         - check and/or prepare Bank account setup in Pohoda
-* **pohoda-raiffeisenbank-transactions**  - Import transactions. From latest imported or within the given scope
-* **pohoda-raiffeisenbank-statements**    - Import transactions from Account Statements.
-* **pohoda-raiffeisenbank-offline-statement-importer** - Import transactions from XML Statements file.
-* **pohoda-raiffeisenbank-xml-statement** - Import transactions from XML Statements file.
-* **pohodasql-raiffeisenbank-statements-sharepoint** - Import transactions from Account Statements with link to Sharepoint
+The code is released under the MIT License. See the [LICENSE](LICENSE) file for details.

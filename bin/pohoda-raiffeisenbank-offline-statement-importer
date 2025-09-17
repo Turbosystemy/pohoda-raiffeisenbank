@@ -1,3 +1,0 @@
-#!/bin/bash
-php -f /usr/lib/pohoda-raiffeisenbank/src/pohoda-raiffeisenbank-offline-statement-importer.php -- $@
-
